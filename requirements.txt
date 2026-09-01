@@ -1,0 +1,817 @@
+ONLINE RETAIL DATA ANALYSIS PROJECT
+ASSIGNMENT REQUIREMENTS
+
+======================================================================
+PROJECT OVERVIEW
+======================================================================
+
+Problem:
+Analyze the Online Retail Dataset to clean the raw data, perform EDA,
+create new features, visualize patterns, and generate business insights.
+
+Dataset:
+Online Retail Dataset – UCI Repository
+
+Main Python Libraries:
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+======================================================================
+TASK 1 – DATA IMPORT & SETUP
+======================================================================
+
+Requirements:
+- Load the dataset using Pandas.
+- Explore the dataset structure.
+- Convert InvoiceDate to datetime.
+
+IMPORTANT FUNCTIONS / COMMANDS:
+
+1. Import Pandas
+   import pandas as pd
+
+2. Load Excel file
+   df = pd.read_excel("Online Retail.xlsx")
+
+3. View first rows
+   df.head()
+
+4. View last rows
+   df.tail()
+
+5. View number of rows and columns
+   df.shape
+
+6. View column names
+   df.columns
+
+7. View data types and non-null information
+   df.info()
+
+8. Convert InvoiceDate to datetime
+   df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"])
+
+9. Check data types
+   df.dtypes
+
+
+======================================================================
+TASK 2 – DATA CLEANING
+======================================================================
+
+Requirements:
+- Handle missing values.
+- Remove rows with null CustomerID.
+- Remove duplicates.
+- Fix invalid Quantity values.
+- Fix invalid UnitPrice values.
+
+IMPORTANT FUNCTIONS / COMMANDS:
+
+1. Check missing values
+   df.isnull().sum()
+
+2. Remove rows where CustomerID is missing
+   df = df.dropna(subset=["CustomerID"])
+
+3. Check duplicate rows
+   df.duplicated().sum()
+
+4. Remove duplicate rows
+   df = df.drop_duplicates()
+
+5. Check negative Quantity
+   df[df["Quantity"] < 0]
+
+6. Keep only valid positive Quantity
+   df = df[df["Quantity"] > 0]
+
+7. Check invalid / zero UnitPrice
+   df[df["UnitPrice"] <= 0]
+
+8. Keep only valid UnitPrice
+   df = df[df["UnitPrice"] > 0]
+
+9. Reset index after cleaning
+   df = df.reset_index(drop=True)
+
+10. Check missing values again
+    df.isnull().sum()
+
+11. Check final dataset size
+    df.shape
+
+
+======================================================================
+TASK 3 – FEATURE ENGINEERING
+======================================================================
+
+Requirements:
+- Create TotalPrice.
+- Extract Year, Month, Day, and Hour.
+- Create Customer Segment.
+- Create Order Size.
+- Create Day Type.
+
+--------------------------------------------------
+A. CREATE TOTALPRICE
+--------------------------------------------------
+
+Formula:
+TotalPrice = Quantity × UnitPrice
+
+Code:
+df["TotalPrice"] = df["Quantity"] * df["UnitPrice"]
+
+--------------------------------------------------
+B. EXTRACT DATE / TIME FEATURES
+--------------------------------------------------
+
+Make sure InvoiceDate is datetime first:
+
+df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"])
+
+Year:
+df["Year"] = df["InvoiceDate"].dt.year
+
+Month:
+df["Month"] = df["InvoiceDate"].dt.month
+
+Day:
+df["Day"] = df["InvoiceDate"].dt.day
+
+Hour:
+df["Hour"] = df["InvoiceDate"].dt.hour
+
+Optional month name:
+df["MonthName"] = df["InvoiceDate"].dt.month_name()
+
+Optional day name:
+df["DayName"] = df["InvoiceDate"].dt.day_name()
+
+--------------------------------------------------
+C. CUSTOMER SEGMENT
+--------------------------------------------------
+
+Customer Segment can be created based on customer spending.
+
+First calculate customer-level spending:
+
+customer_spending = df.groupby("CustomerID")["TotalPrice"].sum()
+
+Example using pd.cut:
+
+df["CustomerSegment"] = pd.cut(df["TotalPrice"],bins=[0, 50, 500, float("inf")], labels=["Low", "Medium", "High"])
+
+--------------------------------------------------
+D. ORDER SIZE
+--------------------------------------------------
+
+Example based on Quantity:
+
+df["OrderSize"] = pd.cut(
+    df["Quantity"],
+    bins=[0, 5, 20, float("inf")],
+    labels=["Small", "Medium", "Large"])
+
+--------------------------------------------------
+E. DAY TYPE
+--------------------------------------------------
+
+Create weekday/weekend category:
+
+df["DayType"] = df["InvoiceDate"].dt.dayofweek.apply(
+    lambda x: "Weekend" if x >= 5 else "Weekday")
+
+Alternative:
+
+df["DayType"] = np.where(
+    df["InvoiceDate"].dt.dayofweek >= 5,
+    "Weekend",
+    "Weekday")
+
+IMPORTANT FUNCTIONS:
+- .dt.year
+- .dt.month
+- .dt.day
+- .dt.hour
+- .dt.day_name()
+- .dt.month_name()
+- pd.cut()
+- np.where()
+- lambda
+
+======================================================================
+TASK 4 – DATA EXPLORATION
+======================================================================
+
+Requirements:
+- Use describe().
+- Explore categorical columns.
+- Use value_counts().
+- Use unique().
+- Perform groupby() analysis.
+
+IMPORTANT FUNCTIONS / COMMANDS:
+
+1. Statistical overview
+   df.describe()
+
+2. Include all columns
+   df.describe(include="all")
+
+3. Unique countries
+   df["Country"].unique()
+
+4. Number of unique countries
+   df["Country"].nunique()
+
+5. Count each country
+   df["Country"].value_counts()
+
+6. Count products
+   df["Description"].value_counts()
+
+7. Count customer segments
+   df["CustomerSegment"].value_counts()
+
+8. Group by Country
+   df.groupby("Country")["TotalPrice"].sum()
+
+9. Group by Month
+   df.groupby("Month")["TotalPrice"].sum()
+
+10. Group by Product
+    df.groupby("Description")["TotalPrice"].sum()
+
+11. Multiple aggregations
+    df.groupby("Country").agg({
+        "Quantity": "sum",
+        "TotalPrice": "sum" })
+
+======================================================================
+TASK 5 – DATA WRANGLING
+======================================================================
+
+Requirements:
+- Aggregate data.
+- Find top customers.
+- Find top countries.
+- Sort results.
+- Restructure data if required.
+
+--------------------------------------------------
+A. TOP CUSTOMERS
+--------------------------------------------------
+
+customer_sales = df.groupby("CustomerID")["TotalPrice"].sum()
+
+Sort highest first:
+
+top_customers = customer_sales.sort_values(ascending=False)
+
+Top 10:
+
+top_10_customers = customer_sales.sort_values(ascending=False).head(10)
+
+--------------------------------------------------
+B. TOP COUNTRIES
+--------------------------------------------------
+
+country_sales = df.groupby("Country")["TotalPrice"].sum()
+
+top_countries = country_sales.sort_values(ascending=False)
+
+Top 10:
+
+top_10_countries = country_sales.sort_values(ascending=False).head(10)
+
+--------------------------------------------------
+C. TOP PRODUCTS
+--------------------------------------------------
+
+product_sales = df.groupby("Description")["TotalPrice"].sum()
+
+top_products = product_sales.sort_values(ascending=False).head(10)
+
+--------------------------------------------------
+D. MULTIPLE AGGREGATIONS
+--------------------------------------------------
+
+country_summary = df.groupby("Country").agg(
+    Total_Sales=("TotalPrice", "sum"),
+    Total_Quantity=("Quantity", "sum"),
+    Number_of_Transactions=("InvoiceNo", "nunique")).sort_values("Total_Sales", ascending=False)
+
+IMPORTANT FUNCTIONS:
+- groupby()
+- agg()
+- sum()
+- count()
+- nunique()
+- sort_values()
+- head()
+- reset_index()
+
+======================================================================
+TASK 6 – STATISTICAL ANALYSIS
+======================================================================
+
+Requirements:
+Analyze:
+- Quantity
+- UnitPrice
+- TotalPrice
+
+Calculate:
+- Mean
+- Median
+- Mode
+- Standard deviation
+- Variance
+- Percentiles
+
+--------------------------------------------------
+A. MEAN
+--------------------------------------------------
+
+df["Quantity"].mean()
+df["UnitPrice"].mean()
+df["TotalPrice"].mean()
+
+--------------------------------------------------
+B. MEDIAN
+--------------------------------------------------
+
+df["Quantity"].median()
+df["UnitPrice"].median()
+df["TotalPrice"].median()
+
+--------------------------------------------------
+C. MODE
+--------------------------------------------------
+
+df["Quantity"].mode()
+df["UnitPrice"].mode()
+df["TotalPrice"].mode()
+
+--------------------------------------------------
+D. STANDARD DEVIATION
+--------------------------------------------------
+
+df["Quantity"].std()
+df["UnitPrice"].std()
+df["TotalPrice"].std()
+
+--------------------------------------------------
+E. VARIANCE
+--------------------------------------------------
+
+df["Quantity"].var()
+df["UnitPrice"].var()
+df["TotalPrice"].var()
+
+--------------------------------------------------
+F. PERCENTILES
+--------------------------------------------------
+
+25th percentile:
+df["TotalPrice"].quantile(0.25)
+
+50th percentile:
+df["TotalPrice"].quantile(0.50)
+
+75th percentile:
+df["TotalPrice"].quantile(0.75)
+
+Multiple percentiles:
+
+df["TotalPrice"].quantile([0.25, 0.50, 0.75, 0.90, 0.95])
+
+--------------------------------------------------
+G. COMPLETE SUMMARY
+--------------------------------------------------
+
+df[["Quantity", "UnitPrice", "TotalPrice"]].describe()
+
+This automatically provides:
+- count
+- mean
+- standard deviation
+- minimum
+- 25%
+- 50%
+- 75%
+- maximum
+
+======================================================================
+TASK 7 – DATA VISUALIZATION
+======================================================================
+
+Minimum 8 plots are required.
+
+Matplotlib:
+1. Line chart
+2. Bar chart
+3. Histogram
+4. Box plot
+
+Seaborn:
+5. Count plot
+6. Violin plot
+7. Heatmap
+8. Pair plot
+
+======================================================================
+MATPLOTLIB PLOTS
+======================================================================
+
+--------------------------------------------------
+1. LINE CHART – SALES TREND
+--------------------------------------------------
+
+monthly_sales = df.groupby("Month")["TotalPrice"].sum()
+
+plt.figure(figsize=(8, 5))
+plt.plot(monthly_sales.index, monthly_sales.values)
+plt.xlabel("Month")
+plt.ylabel("Total Sales")
+plt.title("Monthly Sales Trend")
+plt.show()
+
+IMPORTANT FUNCTIONS:
+- plt.figure()
+- plt.plot()
+- plt.xlabel()
+- plt.ylabel()
+- plt.title()
+- plt.show()
+
+--------------------------------------------------
+2. BAR CHART – TOP COUNTRIES
+--------------------------------------------------
+
+country_sales = df.groupby("Country")["TotalPrice"].sum()
+top_10 = country_sales.sort_values(ascending=False).head(10)
+
+plt.figure(figsize=(10, 5))
+plt.bar(top_10.index, top_10.values)
+plt.xlabel("Country")
+plt.ylabel("Total Sales")
+plt.title("Top 10 Countries by Sales")
+plt.xticks(rotation=45)
+plt.show()
+
+--------------------------------------------------
+3. HISTOGRAM – TOTAL PRICE
+--------------------------------------------------
+
+plt.figure(figsize=(8, 5))
+plt.hist(df["TotalPrice"], bins=30)
+plt.xlabel("Total Price")
+plt.ylabel("Frequency")
+plt.title("Distribution of Total Price")
+plt.show()
+
+--------------------------------------------------
+4. BOX PLOT – UNIT PRICE
+--------------------------------------------------
+
+plt.figure(figsize=(8, 5))
+plt.boxplot(df["UnitPrice"])
+plt.ylabel("Unit Price")
+plt.title("Unit Price Distribution")
+plt.show()
+
+======================================================================
+SEABORN PLOTS
+======================================================================
+
+--------------------------------------------------
+5. COUNT PLOT – CUSTOMER SEGMENT
+--------------------------------------------------
+
+plt.figure(figsize=(8, 5))
+sns.countplot(data=df, x="CustomerSegment")
+plt.title("Customer Segment Distribution")
+plt.show()
+
+--------------------------------------------------
+6. VIOLIN PLOT – TOTAL PRICE BY DAY TYPE
+--------------------------------------------------
+
+plt.figure(figsize=(8, 5))
+sns.violinplot(data=df, x="DayType", y="TotalPrice")
+plt.title("Total Price by Day Type")
+plt.show()
+
+--------------------------------------------------
+7. HEATMAP – CORRELATION
+--------------------------------------------------
+
+correlation = df[["Quantity", "UnitPrice", "TotalPrice"]].corr()
+
+plt.figure(figsize=(7, 5))
+sns.heatmap(correlation, annot=True)
+plt.title("Correlation Heatmap")
+plt.show()
+
+--------------------------------------------------
+8. PAIR PLOT
+--------------------------------------------------
+
+sns.pairplot(
+    df[["Quantity", "UnitPrice", "TotalPrice"]]
+)
+plt.show()
+
+IMPORTANT SEABORN FUNCTIONS:
+- sns.countplot()
+- sns.violinplot()
+- sns.heatmap()
+- sns.pairplot()
+
+IMPORTANT MATPLOTLIB FUNCTIONS:
+- plt.figure()
+- plt.plot()
+- plt.bar()
+- plt.hist()
+- plt.boxplot()
+- plt.xlabel()
+- plt.ylabel()
+- plt.title()
+- plt.xticks()
+- plt.show()
+
+======================================================================
+TASK 8 – BUSINESS INSIGHTS
+======================================================================
+
+Requirements:
+
+Identify:
+- Top country
+- Best sales month
+- Peak sales time
+
+Analyze:
+- Customer behavior
+- High-value customers
+- Top products
+
+--------------------------------------------------
+A. TOP COUNTRY
+--------------------------------------------------
+
+country_sales = df.groupby("Country")["TotalPrice"].sum()
+
+top_country = country_sales.idxmax()
+top_country_sales = country_sales.max()
+
+print("Top Country:", top_country)
+print("Sales:", top_country_sales)
+
+IMPORTANT:
+idxmax() returns the index/label corresponding to the maximum value.
+max() returns the maximum value.
+
+--------------------------------------------------
+B. BEST SALES MONTH
+--------------------------------------------------
+
+monthly_sales = df.groupby("Month")["TotalPrice"].sum()
+
+best_month = monthly_sales.idxmax()
+best_month_sales = monthly_sales.max()
+
+print("Best Sales Month:", best_month)
+print("Sales:", best_month_sales)
+
+--------------------------------------------------
+C. PEAK SALES TIME
+--------------------------------------------------
+
+hourly_sales = df.groupby("Hour")["TotalPrice"].sum()
+
+peak_hour = hourly_sales.idxmax()
+peak_hour_sales = hourly_sales.max()
+
+print("Peak Sales Hour:", peak_hour)
+print("Sales:", peak_hour_sales)
+
+--------------------------------------------------
+D. HIGH-VALUE CUSTOMERS
+--------------------------------------------------
+
+customer_sales = df.groupby("CustomerID")["TotalPrice"].sum()
+
+high_value_customers = customer_sales.sort_values(
+    ascending=False
+).head(10)
+
+print(high_value_customers)
+
+--------------------------------------------------
+E. TOP PRODUCTS
+--------------------------------------------------
+
+product_sales = df.groupby("Description")["TotalPrice"].sum()
+
+top_products = product_sales.sort_values(
+    ascending=False
+).head(10)
+
+print(top_products)
+
+--------------------------------------------------
+F. CUSTOMER BEHAVIOR
+--------------------------------------------------
+
+Customer purchase frequency:
+
+customer_frequency = df.groupby(
+    "CustomerID"
+)["InvoiceNo"].nunique()
+
+Top frequent customers:
+
+customer_frequency.sort_values(
+    ascending=False
+).head(10)
+
+This helps identify customers who make purchases frequently.
+
+======================================================================
+TASK 9 – GITHUB PROJECT IMPLEMENTATION
+======================================================================
+
+Required folder structure:
+
+Online_Retail_Project/
+│
+├── data/
+│   └── DATA.xlsx
+│
+├── notebooks/
+│   └── Assignment_5.ipynb
+│
+├── README.md
+│
+└── requirements.txt
+
+--------------------------------------------------
+A. CREATE GIT REPOSITORY
+--------------------------------------------------
+
+Open the project folder in VS Code terminal.
+
+Command:
+
+git init
+
+--------------------------------------------------
+B. CHECK STATUS
+--------------------------------------------------
+
+git status
+
+--------------------------------------------------
+C. ADD FILES
+--------------------------------------------------
+
+git add .
+
+--------------------------------------------------
+D. CREATE COMMIT
+--------------------------------------------------
+
+git commit -m "Initial commit"
+
+--------------------------------------------------
+E. CONNECT TO GITHUB
+--------------------------------------------------
+
+git remote add origin <repo_link>
+
+Example:
+
+git remote add origin https://github.com/username/repository.git
+
+--------------------------------------------------
+F. PUSH TO GITHUB
+--------------------------------------------------
+
+git branch -M main
+
+git push -u origin main
+
+--------------------------------------------------
+G. FUTURE VERSION CONTROL
+--------------------------------------------------
+
+After making changes:
+
+git status
+
+git add .
+
+git commit -m "Updated analysis and visualizations"
+
+git push
+
+IMPORTANT GIT COMMANDS:
+- git init
+- git status
+- git add .
+- git commit -m "message"
+- git remote add origin <repo_link>
+- git branch -M main
+- git push -u origin main
+- git push
+
+======================================================================
+README.MD REQUIREMENTS
+======================================================================
+
+README.md contains:
+
+1. Project Title
+2. Project Description
+3. Dataset Information
+4. Objectives
+5. Tools and Libraries Used
+6. Project Folder Structure
+7. Data Cleaning Steps
+8. Feature Engineering Steps
+9. Exploratory Data Analysis
+10. Statistical Analysis
+11. Visualizations
+12. Business Insights
+13. How to Run the Project
+14. Key Findings
+
+======================================================================
+REQUIREMENTS.TXT
+======================================================================
+
+The requirements.txt file lists the Python libraries required
+to run the project.
+
+Example:
+
+numpy
+pandas
+matplotlib
+seaborn
+openpyxl
+jupyter
+
+======================================================================
+PROJECT WORKFLOW – MAIN ORDER TO FOLLOW
+======================================================================
+
+1. Import libraries.
+2. Load Online Retail.xlsx.
+3. Explore the dataset.
+4. Convert InvoiceDate to datetime.
+5. Check and clean missing values.
+6. Remove duplicate rows.
+7. Remove invalid Quantity values.
+8. Remove invalid UnitPrice values.
+9. Create TotalPrice.
+10. Create Year, Month, Day, and Hour.
+11. Create Customer Segment.
+12. Create Order Size.
+13. Create Day Type.
+14. Perform describe() and EDA.
+15. Use value_counts(), unique(), and groupby().
+16. Perform aggregation and sorting.
+17. Calculate statistical measures.
+18. Create the required 8 visualizations.
+19. Identify business insights.
+20. Save/organize the project files.
+21. Create README.md.
+22. Create requirements.txt.
+23. Initialize Git.
+24. Commit the project.
+25. Push the project to GitHub.
+
+======================================================================
+FINAL DELIVERABLE CHECKLIST
+======================================================================
+
+[ ] Complete Python code / Jupyter Notebook
+[ ] Original dataset in data/ (if permitted)
+[ ] Cleaned dataset (if applicable)
+[ ] Minimum 8 visualizations
+[ ] README.md
+[ ] requirements.txt
+[ ] Git repository initialized
+[ ] Proper Git commits
+[ ] GitHub repository created
+[ ] Project pushed to GitHub
+[ ] GitHub repository link ready for submission
+
+END OF ASSIGNMENT REQUIREMENTS
